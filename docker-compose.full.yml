@@ -55,8 +55,10 @@ services:
       - "8001:8000"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-uav_user}:${POSTGRES_PASSWORD:-change_me}@db:5432/${POSTGRES_DB:-uav}
-      ZLM_HOST: ${ZLM_HOST:-http://localhost:9000}
-      ZLM_SECRET: ${ZLM_SECRET:-035c73f7-bb6b-4889-a715-d9eb2d1925cc}
+      # ZLM integration is not used by current backend flows.
+      # Keep these commented out to avoid hardcoding secrets in compose.
+      # ZLM_HOST: ${ZLM_HOST}
+      # ZLM_SECRET: ${ZLM_SECRET}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       # Disable file logging by default (avoid creating logs/ inside the bind-mounted repo)
       LOG_FILE: ""
