@@ -1,0 +1,70 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: uav-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-uav}
+      POSTGRES_USER: ${POSTGRES_USER:-uav_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - uav_postgres_data:/var/lib/postgresql/data
+      - ./db-docker/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  uav_telemetry:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.uav_telemetry.dev
+    container_name: uav-telemetry
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      # Note: uav_telemetry reads DB URL from appsettings.json
+      TZ: ${TZ:-UTC}
+    volumes:
+      # Bind-mount code for easy upgrades (git pull + restart)
+      - ./uav_telemetry:/app
+      # Override appsettings.json inside container with docker-specific DB host
+      - ./docker-config/uav_telemetry.appsettings.json:/app/appsettings.json:ro
+      # Persist generated telemetry files without polluting the repo working tree
+      - uav_telemetry_data:/app/data
+
+  uav_media_info:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.uav_media_info.dev
+    container_name: uav-media-info
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      # uav-media-info default docs say port 8000; we map host 8001 to avoid conflict
+      - "8001:8000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-uav_user}:${POSTGRES_PASSWORD:-change_me}@db:5432/${POSTGRES_DB:-uav}
+      ZLM_HOST: ${ZLM_HOST:-http://localhost:9000}
+      ZLM_SECRET: ${ZLM_SECRET:-035c73f7-bb6b-4889-a715-d9eb2d1925cc}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      # Disable file logging by default (avoid creating logs/ inside the bind-mounted repo)
+      LOG_FILE: ""
+      TZ: ${TZ:-UTC}
+    volumes:
+      # Bind-mount code for easy upgrades (git pull + restart)
+      - ./uav-media-info:/app
+
+volumes:
+  uav_postgres_data:
+  uav_telemetry_data:

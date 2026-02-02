@@ -1,0 +1,6 @@
+[submodule "uav_telemetry"]
+	path = uav_telemetry
+	url = https://github.com/CHZarles/uav_telemetry.git
+[submodule "uav-media-info"]
+	path = uav-media-info
+	url = https://github.com/CHZarles/uav-media-info.git

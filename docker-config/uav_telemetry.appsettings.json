@@ -1,0 +1,25 @@
+{
+    "Storage": {
+        "root_path": "./data",
+        "write_buffer_size": 4096
+    },
+    "Database": {
+        "url": "postgresql://uav_user:change_me@db:5432/uav"
+    },
+    "Telemetry": {
+        "heartbeat_ttl": 300
+    },
+    "Cors": {
+        "allow_origins": [
+            "http://localhost:8000",
+            "http://127.0.0.1:8000"
+        ],
+        "allow_credentials": false,
+        "allow_methods": [
+            "*"
+        ],
+        "allow_headers": [
+            "*"
+        ]
+    }
+}
