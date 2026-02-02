@@ -29,7 +29,7 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "8000:8000"
+      - "${TELEMETRY_PORT:-8000}:8000"
     environment:
       # Note: uav_telemetry reads DB URL from appsettings.json
       TZ: ${TZ:-UTC}
@@ -52,13 +52,13 @@ services:
         condition: service_healthy
     ports:
       # uav-media-info default docs say port 8000; we map host 8001 to avoid conflict
-      - "8001:8000"
+      - "${MEDIA_PORT:-8001}:8000"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-uav_user}:${POSTGRES_PASSWORD:-change_me}@db:5432/${POSTGRES_DB:-uav}
-      # ZLM integration is not used by current backend flows.
-      # Keep these commented out to avoid hardcoding secrets in compose.
-      # ZLM_HOST: ${ZLM_HOST}
-      # ZLM_SECRET: ${ZLM_SECRET}
+      # Optional ZLMediaKit settings (currently not used by backend flows)
+      # Keep defaults empty to avoid hardcoding secrets in compose.
+      ZLM_HOST: ${ZLM_HOST:-}
+      ZLM_SECRET: ${ZLM_SECRET:-}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       # Disable file logging by default (avoid creating logs/ inside the bind-mounted repo)
       LOG_FILE: ""

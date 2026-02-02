@@ -46,13 +46,14 @@ git submodule update --remote --merge
 
 ```
 backend/
+  .env.example                  # 示例环境变量（复制为 .env；不要提交）
   docker-compose.full.yml        # DB + 两个服务一键启动（推荐）
   docker-compose.db.yml          # 仅 DB（可选）
   docker/                        # 编排仓库维护的 dev 镜像 Dockerfile（只安装依赖，不包含业务代码）
     Dockerfile.uav_telemetry.dev
     Dockerfile.uav_media_info.dev
   db-docker/
-    .env.example                 # 示例 DB 配置（复制为 .env）
+    .env.example                 # DB 配置示例（历史保留，可不使用）
     init/001_schema.sql          # 初始化表结构（首次创建数据卷时执行）
   docker-config/
     uav_telemetry.appsettings.json  # uav_telemetry 的容器内配置覆盖
@@ -84,30 +85,29 @@ backend/
 ```bash
 cd /home/ubuntu/backend
 
-# 首次使用：创建本地 DB 配置（不要提交包含密码的 .env）
-cp db-docker/.env.example db-docker/.env
+# 首次使用：创建本地环境变量配置（不要提交包含密码的 .env）
+cp .env.example .env
 ```
 
-可选：如果你要对接真实 ZLMediaKit，把 `ZLM_HOST` / `ZLM_SECRET` 通过环境变量传入（Compose 会透传）：
-
-```bash
-export ZLM_HOST=http://localhost:9000
-export ZLM_SECRET=035c73f7-bb6b-4889-a715-d9eb2d1925cc
-```
+可选：如果你要对接真实 ZLMediaKit，在根目录 `.env` 里配置 `ZLM_HOST` / `ZLM_SECRET`（当前后端流程未使用，预留给未来集成）。
 
 ```bash
 cd /home/ubuntu/backend
 
 # 一键启动：DB + uav_telemetry + uav-media-info
 # --build：首次会构建两个“依赖镜像”（只装 pip 依赖，不包含代码）
-docker compose -f docker-compose.full.yml --env-file db-docker/.env up -d --build
+docker compose -f docker-compose.full.yml up -d --build
 ```
+
+说明：Compose 默认会读取仓库根目录的 `.env`（本仓库推荐方式）。
 
 启动成功后：
 
 - DB：`localhost:5433`（宿主机端口，容器内是 5432）
 - 遥测服务：`http://localhost:8000/docs`
 - 媒体服务：`http://localhost:8001/docs`
+
+说明：如果端口冲突，可在根目录 `.env` 里改 `TELEMETRY_PORT` / `MEDIA_PORT`。
 
 快速验证（可选）：
 
@@ -121,7 +121,7 @@ curl -fsSI http://localhost:8001/docs | head -n 5
 ```bash
 cd /home/ubuntu/backend
 
-docker compose -f docker-compose.full.yml --env-file db-docker/.env down
+docker compose -f docker-compose.full.yml down
 ```
 
 ### 3) 开发/升级代码（不重新 build 镜像）
@@ -139,13 +139,13 @@ cd /home/ubuntu/backend
 git pull
 
 # 重启两个服务（DB 不动）
-docker compose -f docker-compose.full.yml --env-file db-docker/.env restart uav_telemetry uav_media_info
+docker compose -f docker-compose.full.yml restart uav_telemetry uav_media_info
 ```
 
 如果改动了 `requirements.txt`，才需要重新 build：
 
 ```bash
-docker compose -f docker-compose.full.yml --env-file db-docker/.env up -d --build
+docker compose -f docker-compose.full.yml up -d --build
 ```
 
 ---
@@ -184,7 +184,7 @@ git push
 
 ### 配置位置
 
-- DB 容器环境变量：`db-docker/.env`
+- 环境变量：根目录 `.env`
   - `POSTGRES_DB`（默认 `uav`）
   - `POSTGRES_USER`（默认 `uav_user`）
   - `POSTGRES_PASSWORD`（默认 `change_me`）
@@ -216,12 +216,12 @@ docker exec -e PGPASSWORD=change_me uav-postgres psql -U uav_user -d uav -c "\\d
 ```bash
 cd /home/ubuntu/backend
 
-docker compose -f docker-compose.full.yml --env-file db-docker/.env down
+docker compose -f docker-compose.full.yml down
 # 删除数据卷（危险操作）
 docker volume rm backend_uav_postgres_data
 
 # 再次启动会重新初始化 schema
-docker compose -f docker-compose.full.yml --env-file db-docker/.env up -d --build
+docker compose -f docker-compose.full.yml up -d --build
 ```
 
 ---
@@ -245,7 +245,7 @@ docker compose -f docker-compose.full.yml --env-file db-docker/.env up -d --buil
 - **配置来源**：环境变量（支持 `.env`）
 - Compose 直接注入：
   - `DATABASE_URL=postgresql://uav_user:change_me@db:5432/uav`
-  - `ZLM_HOST` / `ZLM_SECRET`
+  - （可选）`ZLM_HOST` / `ZLM_SECRET`（默认空值）
 
 说明：Docker 一键启动时不需要（也不建议）编辑子模块里的 `uav-media-info/.env`；优先通过 Compose 环境变量控制。
 
@@ -262,7 +262,7 @@ docker compose -f docker-compose.full.yml --env-file db-docker/.env up -d --buil
 ```bash
 cd /home/ubuntu/backend
 
-docker compose -f docker-compose.db.yml --env-file db-docker/.env up -d
+docker compose -f docker-compose.db.yml up -d
 ```
 
 此时 DB 在宿主机端口 `5433`，连接串示例：
@@ -361,6 +361,5 @@ docker logs -n 200 uav-media-info
 
 ## 下一步建议
 
-- 把两个服务的对外端口、ZLM 配置抽到统一的根 `.env`（便于不同环境切换）
 - 为两个服务加健康检查 `/healthz`（compose 中可依赖 health 状态）
 - 增加生产 Compose（非 reload、带日志与资源限制）

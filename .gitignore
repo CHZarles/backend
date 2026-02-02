@@ -3,7 +3,10 @@
 # Local environment files (commit .env.example instead)
 .env
 .env.*
+!.env.example
 db-docker/.env
+db-docker/.env.*
+!db-docker/.env.example
 
 # Python cache (only relevant to root scripts)
 __pycache__/
