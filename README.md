@@ -329,7 +329,7 @@ curl -fsSI http://<公网IP>:8001/docs | head -n 5
 ### 1) DB 端口冲突
 
 - 现象：`address already in use`（例如宿主机已有 Postgres 占用 5432）
-- 解决：使用 `db-docker/.env` 把 `POSTGRES_PORT` 改为未占用端口（例如 5433/5434），然后重启 compose。
+- 解决：修改根目录 `.env` 的 `POSTGRES_PORT` 为未占用端口（例如 5433/5434），然后重启 compose。
 
 ### 2) DB 初始化脚本没生效
 
