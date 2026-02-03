@@ -25,19 +25,22 @@ cd backend
 git submodule update --init --recursive
 ```
 
-更新代码时：
-
-- 更新到编排仓库记录的子模块版本（可复现）：
+更新代码时（部署/接手推荐，严格跟随编排仓库 pin 的子模块版本，可复现）：
 
 ```bash
-git pull
+git pull --recurse-submodules
 git submodule update --init --recursive
 ```
 
-- 如果你要把子模块升级到最新远端版本（需要提交子模块指针变更）：
+如果你是维护者，想把两个 submodule 都升级到各自 `master` 最新并提交指针（本仓库已配置 submodule 跟踪 `master`）：
 
 ```bash
-git submodule update --remote --merge
+git submodule update --init --recursive --remote
+
+# 记录并提交“子模块指针”变化
+git add uav_telemetry uav-media-info
+git commit -m "chore: bump submodules"
+git push
 ```
 
 ---
@@ -136,7 +139,8 @@ docker compose -f docker-compose.full.yml down
 ```bash
 cd /home/ubuntu/backend
 
-git pull
+git pull --recurse-submodules
+git submodule update --init --recursive
 
 # 重启两个服务（DB 不动）
 docker compose -f docker-compose.full.yml restart uav_telemetry uav_media_info
@@ -146,6 +150,60 @@ docker compose -f docker-compose.full.yml restart uav_telemetry uav_media_info
 
 ```bash
 docker compose -f docker-compose.full.yml up -d --build
+```
+
+---
+
+## 接手/部署：同步更新 + 重新部署（推荐流程）
+
+以下流程适合“服务器上已经在跑一套 compose，想把两个子项目更新到最新并重启上线”。
+
+### A) 部署方：更新到编排仓库 pin 的版本（最推荐）
+
+```bash
+cd /home/ubuntu/backend
+
+# 1) 更新编排仓库与子模块到 pin 的 commit
+git pull --recurse-submodules
+git submodule update --init --recursive
+
+# 2) 重新部署（会在需要时重建依赖镜像、重建容器）
+docker compose -f docker-compose.full.yml up -d --build --remove-orphans
+```
+
+验证（按你的 `.env` 端口为准）：
+
+```bash
+docker compose -f docker-compose.full.yml ps
+curl -fsSI http://localhost:${TELEMETRY_PORT:-8002}/docs | head -n 5
+curl -fsSI http://localhost:${MEDIA_PORT:-8003}/docs | head -n 5
+```
+
+看日志排查：
+
+```bash
+docker compose -f docker-compose.full.yml logs -f --tail=200 uav_telemetry
+docker compose -f docker-compose.full.yml logs -f --tail=200 uav_media_info
+```
+
+### B) 维护方：把 submodule bump 到各自 master 最新（然后再部署）
+
+当你确认两个子项目都已在各自仓库合并进 `master`，可以在编排仓库执行：
+
+```bash
+cd /home/ubuntu/backend
+
+# 1) 拉取并把 submodule 更新到 origin/master 最新
+git pull
+git submodule update --init --recursive --remote
+
+# 2) 提交编排仓库中的“子模块指针”变更
+git add uav_telemetry uav-media-info
+git commit -m "chore: bump submodules"
+git push
+
+# 3) 在服务器（或本机）重新部署
+docker compose -f docker-compose.full.yml up -d --build --remove-orphans
 ```
 
 ---
