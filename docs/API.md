@@ -89,6 +89,3 @@
 - Body (JSON)
   - `mediaServerId` (string), `app` (string), `stream` (string), `file_path` (string), `file_size` (int), `folder` (string), `start_time` (int), `time_len` (number), `url` (string), `vhost` (string)
 - Response (JSON): `{"code":0,"msg":"success"}`
-
-### GET /api/stream/play-url
-- Response: HTTP 404, `{"detail":"Not Found"}`
